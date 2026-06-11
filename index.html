@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Acuité Visuelle (Corrigé)</title>
+    <title>Test Acuité Visuelle (Timing Précis)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -30,7 +30,7 @@
             opacity: 0;
             z-index: 50;
             pointer-events: none;
-            /* On enlève la transition CSS pour que l'apparition/disparition soit contrôlée uniquement par le JS */
+            /* Transition supprimée pour une précision maximale */
         }
 
         #toggleButton {
@@ -97,7 +97,7 @@
         <div class="control-group">
             <label>Seuil Stabilité (Stop): <strong id="stabilityVal">40</strong> °/s</label>
             <input type="range" id="stopThreshold" min="10" max="100" value="40" step="5">
-            <small style="color:#888; display:block;">Sous ce seuil, le système attend un départ.</small>
+            <small style="color:#888; display:block;">Doit redescendre sous ce seuil pour réarmer.</small>
         </div>
 
         <div class="control-group">
@@ -106,8 +106,9 @@
         </div>
 
         <div class="control-group">
-            <label>Affichage (ms): <strong id="dispVal">60</strong></label>
-            <input type="range" id="displayTime" min="50" max="500" value="60" step="10">
+            <label>Durée Affichage (ms): <strong id="dispVal">60</strong></label>
+            <input type="range" id="displayTime" min="16" max="500" value="60" step="1">
+            <small style="color:#888; display:block;">60ms = 3 à 4 images écran.</small>
         </div>
 
         <div class="control-group">
@@ -172,7 +173,7 @@
         let acuityLevel = 6.0;
         let minSpeed = 150;    // Seuil déclenchement
         let maxSpeed = 300;    // Plafond
-        let stopThreshold = 40; // Seuil de "repose" (Stabilité)
+        let stopThreshold = 40; // Seuil de "repose"
         let refDistance = 50;
         let cooldown = 1000;
 
@@ -183,10 +184,8 @@
         let currentLetter = '';
         let currentLetterSize = 120;
         let currentAngularSpeed = 0;
-        let lastLetterTime = 0;
         let lastLetterDisplayTime = 0;
 
-        // Historique pour le calcul de vitesse
         let lastYaw = null;
         let lastPitch = null;
         let lastYawTime = 0;
@@ -195,9 +194,8 @@
 
         let detector = null;
         let initialized = false;
-        
-        // État du système : 'WAITING' (en attente de mouvement) ou 'TRIGGERED' (lettre affichée/en cooldown)
         let motionState = 'WAITING';
+        let letterTimeoutId = null; // Pour le minuteur précis
 
         function log(id, msg, type = 'normal') {
             const el = document.getElementById(id);
@@ -222,10 +220,10 @@
 
         async function initBlazeFace() {
             try {
-                log('statTF', '⏳ Chargement TensorFlow...');
+                log('statTF', '⏳ TensorFlow...');
                 await tf.ready();
                 log('statTF', '✅ TensorFlow prêt', 'success');
-                log('statBlaze', '⏳ Chargement BlazeFace...');
+                log('statBlaze', '⏳ BlazeFace...');
                 detector = await blazeface.load();
                 log('statBlaze', '✅ BlazeFace chargé', 'success');
                 return true;
@@ -235,24 +233,18 @@
             }
         }
 
-        // Calcul des angles de la tête
         function calculateHeadAngles(landmarks) {
             if (!landmarks || landmarks.length < 6) return null;
             try {
-                // Points simples : Yeux, Nez, Oreilles (approximatif avec BlazeFace basique)
                 const leftEye = landmarks[0];
                 const rightEye = landmarks[1];
                 const nose = landmarks[2];
                 const mouth = landmarks[3];
                 
-                // YAW (Rotation gauche/droite)
-                // On compare la position X du nez par rapport aux yeux
                 const faceWidth = Math.sqrt(Math.pow(rightEye[0] - leftEye[0], 2) + Math.pow(rightEye[1] - leftEye[1], 2));
                 const eyeNoseX = (leftEye[0] + rightEye[0]) / 2;
-                // Plus le nez s'écarte du centre, plus l'angle est fort
                 const yawAngle = ((nose[0] - eyeNoseX) / Math.max(faceWidth, 0.1)) * 90; 
 
-                // PITCH (Rotation haut/bas)
                 const eyeCenterY = (leftEye[1] + rightEye[1]) / 2;
                 const pitchAngle = ((mouth[1] - eyeCenterY) / Math.max(faceWidth, 0.1)) * 60;
 
@@ -262,7 +254,6 @@
             }
         }
 
-        // Vitesse angulaire
         function calculateAngularVelocity(newYaw, newPitch, timeDelta) {
             if (lastYaw === null) {
                 lastYaw = newYaw;
@@ -270,23 +261,17 @@
                 lastYawTime = Date.now();
                 return 0;
             }
-
-            // On ignore les deltas de temps trop courts (bruit)
-            if (timeDelta < 33) return 0; // ~30fps min
+            if (timeDelta < 33) return 0; 
 
             const deltaYaw = Math.abs(newYaw - lastYaw);
             const deltaPitch = Math.abs(newPitch - lastPitch);
-
-            // Conversion en degrés/seconde
             const speedYaw = (deltaYaw / (timeDelta / 1000));
             const speedPitch = (deltaPitch / (timeDelta / 1000));
 
-            // On met à jour l'historique
             lastYaw = newYaw;
             lastPitch = newPitch;
             lastYawTime = Date.now();
 
-            // Vitesse totale (vectorielle simplifiée)
             return speedYaw + speedPitch;
         }
 
@@ -299,7 +284,6 @@
         }
 
         function calculateLetterSize() {
-            // Approximation simple pour l'écran
             const pixelPerDegree = 60; 
             const size = (acuityLevel / 10) * pixelPerDegree * (currentDistance / refDistance);
             return size;
@@ -307,13 +291,13 @@
 
         async function startCamera() {
             try {
-                log('statVideo', '⏳ Activation caméra...');
+                log('statVideo', '⏳ Caméra...');
                 const stream = await navigator.mediaDevices.getUserMedia({
                     audio: false,
                     video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
                 });
                 video.srcObject = stream;
-                log('statVideo', '✅ Caméra activée', 'success');
+                log('statVideo', '✅ Caméra OK', 'success');
 
                 video.onloadedmetadata = async () => {
                     canvas.width = video.videoWidth;
@@ -356,58 +340,49 @@
 
                             log('statDetection', '✅ Visage détecté', 'success');
 
-                            // --- LOGIQUE DE DÉCLENCHEMENT CORRIGÉE ---
-                            
                             const nowMs = Date.now();
                             const cooldownOver = nowMs - lastLetterDisplayTime > cooldown;
 
-                            // 1. ÉTAT : En Attente (WAITING)
+                            // 1. ÉTAT : WAITING
                             if (motionState === 'WAITING') {
-                                log('statState', '⚪ En attente (Bougez vite!)');
+                                log('statState', '⚪ En attente');
                                 
-                                // Si on dépasse la vitesse ET que le cooldown est passé
+                                // Condition de déclenchement
                                 if (currentAngularSpeed >= minSpeed && cooldownOver) {
-                                    // VÉRIFICATION : On n'est pas bloqué par le plafond de vitesse (optionnel)
-                                    if (currentAngularSpeed <= maxSpeed + 50) { // Marge de tolérance
-                                        
-                                        // ✅ DÉCLENCHEMENT !
+                                    if (currentAngularSpeed <= maxSpeed + 50) {
+                                        // --- DÉCLENCHEMENT ---
                                         currentDistance = estimateDistance(face.start, face.end);
                                         currentLetterSize = calculateLetterSize();
                                         currentLetter = letters[Math.floor(Math.random() * letters.length)];
                                         
-                                        // Affichage immédiat
+                                        // ALLUMAGE IMMÉDIAT
                                         letterDisplay.textContent = currentLetter;
                                         letterDisplay.style.fontSize = currentLetterSize + 'px';
                                         letterDisplay.style.opacity = '1';
                                         
-                                        lastLetterTime = nowMs;
                                         lastLetterDisplayTime = nowMs;
-                                        
-                                        // Changement d'état
                                         motionState = 'TRIGGERED';
-                                        log('statState', '🟡 DÉCLENCHEMENT !', 'trigger');
+                                        log('statState', '🟡 FLASH !', 'trigger');
+
+                                        // PROGRAMMATION DE L'EXTINCTION (PRÉCISION MS)
+                                        if (letterTimeoutId) clearTimeout(letterTimeoutId);
+                                        letterTimeoutId = setTimeout(() => {
+                                            letterDisplay.style.opacity = '0';
+                                            // Pas de changement d'état ici, on attend l'arrêt du mouvement
+                                        }, displayTime);
                                     }
                                 }
                             }
                             
-                            // 2. ÉTAT : Déclenché (TRIGGERED)
+                            // 2. ÉTAT : TRIGGERED
                             else if (motionState === 'TRIGGERED') {
-                                // On affiche pendant displayTime ms
-                                if (nowMs - lastLetterTime > displayTime) {
-                                    letterDisplay.style.opacity = '0';
-                                }
-
-                                // Pour sortir de cet état et revenir en attente, 
-                                // il faut que la vitesse retombe (Stop Threshold)
-                                // Cela évite les doubles déclenchements si la tête continue de bouger
+                                // On reste dans cet état tant que la vitesse est élevée
+                                // pour éviter les doubles déclenchements
                                 if (currentAngularSpeed < stopThreshold) {
                                     motionState = 'WAITING';
-                                    // On force le reset pour être sûr
                                     lastYaw = currentYaw;
                                     lastPitch = currentPitch;
-                                } else {
-                                    log('statState', `🔴 Mouvement en cours (${Math.round(currentAngularSpeed)}°/s)`);
-                                }
+                                } 
                             }
                         }
                     } else {
@@ -426,7 +401,7 @@
                 }
                 requestAnimationFrame(animate);
             } catch (e) {
-                console.error('Animation error:', e);
+                console.error('Error:', e);
                 requestAnimationFrame(animate);
             }
         }
@@ -437,8 +412,6 @@
             
             const speedEl = document.getElementById('statAngularSpeed');
             speedEl.textContent = `Vitesse: ${Math.round(currentAngularSpeed)}°/s`;
-            
-            // Changement de couleur si on dépasse le seuil
             if (currentAngularSpeed > minSpeed) speedEl.style.color = '#ff0';
             else speedEl.style.color = '#00ff00';
 
@@ -447,7 +420,7 @@
             document.getElementById('statCooldown').textContent = `Cooldown: ${Math.round(cooldownRemaining)}ms`;
         }
 
-        // Gestionnaires d'événements pour les sliders
+        // Listeners
         document.getElementById('stopThreshold').addEventListener('input', (e) => {
             stopThreshold = parseInt(e.target.value);
             document.getElementById('stabilityVal').textContent = stopThreshold;
