@@ -3,13 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Acuité Visuelle</title>
+    <title>Test Acuité Visuelle (Corrigé)</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background: #000;
             font-family: Arial, sans-serif;
@@ -19,158 +15,73 @@
         }
         video {
             position: absolute;
-            width: 1px;           /* ✅ Réduit à 1px */
-            height: 1px;          /* ✅ Réduit à 1px */
-            opacity: 0;           /* ✅ Transparent */
-            pointer-events: none;
+            width: 1px; height: 1px; opacity: 0; pointer-events: none;
         }
-        canvas {
-            display: none;
-        }
+        canvas { display: none; }
+        
         #letterDisplay {
             position: fixed;
-            top: 50%;
-            left: 50%;
+            top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             font-size: 120px;
             font-weight: bold;
             color: white;
-            text-shadow: none;
             font-family: Arial, sans-serif;
             opacity: 0;
-            transition: opacity 0.1s;
             z-index: 50;
             pointer-events: none;
+            /* On enlève la transition CSS pour que l'apparition/disparition soit contrôlée uniquement par le JS */
         }
 
         #toggleButton {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            width: 50px;
-            height: 50px;
+            position: fixed; top: 10px; left: 10px;
+            width: 50px; height: 50px;
             background: rgba(78, 205, 196, 0.9);
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            border: none; border-radius: 50%;
+            cursor: pointer; font-size: 24px;
+            display: flex; align-items: center; justify-content: center;
             z-index: 100;
             box-shadow: 0 4px 12px rgba(78, 205, 196, 0.4);
         }
 
         #controlPanel {
-            position: fixed;
-            top: 70px;
-            left: 10px;
+            position: fixed; top: 70px; left: 10px;
             background: rgba(0, 0, 0, 0.98);
-            color: #4ecdc4;
-            padding: 20px;
-            border-radius: 12px;
-            font-size: 12px;
-            z-index: 100;
-            width: 300px;
-            max-height: 80vh;
-            overflow-y: auto;
+            color: #4ecdc4; padding: 20px;
+            border-radius: 12px; font-size: 12px; z-index: 100;
+            width: 300px; max-height: 80vh; overflow-y: auto;
             border: 2px solid #4ecdc4;
             transform: translateX(-400px);
             transition: transform 0.3s ease;
         }
-        #controlPanel.show {
-            transform: translateX(0);
-        }
+        #controlPanel.show { transform: translateX(0); }
 
-        h3 {
-            color: #4ecdc4;
-            margin-bottom: 15px;
-            font-size: 14px;
-            border-bottom: 2px solid #4ecdc4;
-            padding-bottom: 8px;
-        }
-        h4 {
-            color: #00ff00;
-            margin-top: 15px;
-            margin-bottom: 10px;
-            font-size: 12px;
-        }
-
-        .control-group {
-            margin: 12px 0;
-            padding: 10px;
-            background: rgba(78, 205, 196, 0.1);
-            border-left: 3px solid #4ecdc4;
-            border-radius: 4px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            font-size: 11px;
-            color: #fff;
-        }
-
-        input[type="range"] {
-            width: 100%;
-            height: 5px;
-            cursor: pointer;
-            margin-top: 5px;
-            accent-color: #4ecdc4;
-        }
-
-        input[type="checkbox"] {
-            margin-right: 8px;
-            cursor: pointer;
-        }
-
+        h3 { color: #4ecdc4; margin-bottom: 15px; font-size: 14px; border-bottom: 2px solid #4ecdc4; padding-bottom: 8px; }
+        h4 { color: #00ff00; margin-top: 15px; margin-bottom: 10px; font-size: 12px; }
+        .control-group { margin: 12px 0; padding: 10px; background: rgba(78, 205, 196, 0.1); border-left: 3px solid #4ecdc4; border-radius: 4px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 11px; color: #fff; }
+        input[type="range"] { width: 100%; height: 5px; cursor: pointer; margin-top: 5px; accent-color: #4ecdc4; }
+        
         .stat-line {
-            margin: 6px 0;
-            padding: 6px 8px;
-            background: rgba(0, 255, 0, 0.05);
-            border-radius: 3px;
-            font-family: 'Courier New', monospace;
-            color: #00ff00;
-            font-size: 10px;
-            word-break: break-all;
-            height: 16px;
-            line-height: 16px;
+            margin: 6px 0; padding: 6px 8px;
+            background: rgba(0, 255, 0, 0.05); border-radius: 3px;
+            font-family: 'Courier New', monospace; color: #00ff00;
+            font-size: 10px; word-break: break-all; height: 16px; line-height: 16px;
         }
-
-        .stat-line.error {
-            color: #ff6666;
-            background: rgba(255, 100, 100, 0.1);
-        }
-
-        .stat-line.success {
-            color: #66ff66;
-            background: rgba(100, 255, 100, 0.1);
-        }
+        .stat-line.error { color: #ff6666; background: rgba(255, 100, 100, 0.1); }
+        .stat-line.success { color: #66ff66; background: rgba(100, 255, 100, 0.1); }
+        .stat-line.trigger { color: #ffff00; background: rgba(255, 255, 0, 0.2); }
 
         #status {
-            position: fixed;
-            top: 50%;
-            left: 50%;
+            position: fixed; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.95);
-            color: #4ecdc4;
-            padding: 40px 60px;
-            border-radius: 15px;
-            font-size: 18px;
-            z-index: 200;
-            text-align: center;
+            background: rgba(0, 0, 0, 0.95); color: #4ecdc4;
+            padding: 40px 60px; border-radius: 15px;
+            font-size: 18px; z-index: 200; text-align: center;
             border: 2px solid #4ecdc4;
         }
-
-        .dot {
-            animation: blink 0.5s infinite;
-        }
-
-        @keyframes blink {
-            0%, 49% { opacity: 1; }
-            50%, 100% { opacity: 0.3; }
-        }
+        .dot { animation: blink 0.5s infinite; }
+        @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0.3; } }
     </style>
 </head>
 <body>
@@ -183,6 +94,12 @@
     <div id="controlPanel">
         <h3>⚙️ Paramètres</h3>
         
+        <div class="control-group">
+            <label>Seuil Stabilité (Stop): <strong id="stabilityVal">40</strong> °/s</label>
+            <input type="range" id="stopThreshold" min="10" max="100" value="40" step="5">
+            <small style="color:#888; display:block;">Sous ce seuil, le système attend un départ.</small>
+        </div>
+
         <div class="control-group">
             <label>Acuité visuelle (1/10e): <strong id="sizeVal">6.0</strong></label>
             <input type="range" id="letterSize" min="1" max="20" value="6" step="0.5">
@@ -199,12 +116,12 @@
         </div>
 
         <div class="control-group">
-            <label>Vitesse min (°/sec): <strong id="minSpeedVal">150</strong></label>
+            <label>Vitesse min déclenchement: <strong id="minSpeedVal">150</strong> °/s</label>
             <input type="range" id="minSpeed" min="50" max="300" value="150" step="10">
         </div>
 
         <div class="control-group">
-            <label>Vitesse max (°/sec): <strong id="maxSpeedVal">300</strong></label>
+            <label>Vitesse max (plafond): <strong id="maxSpeedVal">300</strong> °/s</label>
             <input type="range" id="maxSpeed" min="150" max="500" value="300" step="10">
         </div>
 
@@ -219,16 +136,15 @@
         <div class="stat-line" id="statTF">TensorFlow: --</div>
         <div class="stat-line" id="statBlaze">BlazeFace: --</div>
         <div class="stat-line" id="statDetection">Visage: --</div>
+        <div class="stat-line" id="statState">État: --</div>
 
-        <h4>📊 Statistiques</h4>
+        <h4>📊 Statistiques en direct</h4>
         <div class="stat-line" id="statYaw">Yaw: --°</div>
         <div class="stat-line" id="statPitch">Pitch: --°</div>
         <div class="stat-line" id="statAngularSpeed">Vitesse: --°/s</div>
         <div class="stat-line" id="statDistance">Distance: --cm</div>
         <div class="stat-line" id="statLetter">Lettre: --</div>
-        <div class="stat-line" id="statSize">Taille: --px</div>
         <div class="stat-line" id="statCooldown">Cooldown: 0ms</div>
-        <div class="stat-line" id="statFPS">FPS: 0</div>
     </div>
 
     <div id="status">
@@ -237,7 +153,6 @@
         <div style="font-size: 12px; margin-top: 15px; color: #888;">Chargement des modèles IA...</div>
     </div>
 
-    <!-- TensorFlow.js + BlazeFace -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3"></script>
@@ -252,10 +167,12 @@
         const toggleButton = document.getElementById('toggleButton');
         const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
+        // Paramètres
         let displayTime = 60;
         let acuityLevel = 6.0;
-        let minSpeed = 150;
-        let maxSpeed = 300;
+        let minSpeed = 150;    // Seuil déclenchement
+        let maxSpeed = 300;    // Plafond
+        let stopThreshold = 40; // Seuil de "repose" (Stabilité)
         let refDistance = 50;
         let cooldown = 1000;
 
@@ -269,6 +186,7 @@
         let lastLetterTime = 0;
         let lastLetterDisplayTime = 0;
 
+        // Historique pour le calcul de vitesse
         let lastYaw = null;
         let lastPitch = null;
         let lastYawTime = 0;
@@ -277,15 +195,18 @@
 
         let detector = null;
         let initialized = false;
+        
+        // État du système : 'WAITING' (en attente de mouvement) ou 'TRIGGERED' (lettre affichée/en cooldown)
+        let motionState = 'WAITING';
 
         function log(id, msg, type = 'normal') {
-            console.log(msg);
             const el = document.getElementById(id);
             if (el) {
                 el.textContent = msg;
-                el.classList.remove('error', 'success');
+                el.classList.remove('error', 'success', 'trigger');
                 if (type === 'error') el.classList.add('error');
                 if (type === 'success') el.classList.add('success');
+                if (type === 'trigger') el.classList.add('trigger');
             }
         }
 
@@ -299,17 +220,14 @@
             }
         });
 
-        // Initialiser BlazeFace
         async function initBlazeFace() {
             try {
                 log('statTF', '⏳ Chargement TensorFlow...');
                 await tf.ready();
                 log('statTF', '✅ TensorFlow prêt', 'success');
-
                 log('statBlaze', '⏳ Chargement BlazeFace...');
                 detector = await blazeface.load();
                 log('statBlaze', '✅ BlazeFace chargé', 'success');
-                
                 return true;
             } catch (err) {
                 log('statBlaze', `❌ ${err.message}`, 'error');
@@ -317,35 +235,29 @@
             }
         }
 
-        // Calculer les angles
+        // Calcul des angles de la tête
         function calculateHeadAngles(landmarks) {
-            if (!landmarks || landmarks.length < 6) {
-                return null;
-            }
-
+            if (!landmarks || landmarks.length < 6) return null;
             try {
+                // Points simples : Yeux, Nez, Oreilles (approximatif avec BlazeFace basique)
                 const leftEye = landmarks[0];
                 const rightEye = landmarks[1];
+                const nose = landmarks[2];
                 const mouth = landmarks[3];
-                const leftEar = landmarks[4];
-                const rightEar = landmarks[5];
+                
+                // YAW (Rotation gauche/droite)
+                // On compare la position X du nez par rapport aux yeux
+                const faceWidth = Math.sqrt(Math.pow(rightEye[0] - leftEye[0], 2) + Math.pow(rightEye[1] - leftEye[1], 2));
+                const eyeNoseX = (leftEye[0] + rightEye[0]) / 2;
+                // Plus le nez s'écarte du centre, plus l'angle est fort
+                const yawAngle = ((nose[0] - eyeNoseX) / Math.max(faceWidth, 0.1)) * 90; 
 
-                // YAW (rotation gauche-droite)
-                const eyeCenterX = (leftEye[0] + rightEye[0]) / 2;
-                const earCenterX = (leftEar[0] + rightEar[0]) / 2;
-                const yawAngle = ((eyeCenterX - earCenterX) / 100) * 90;
-
-                // PITCH (rotation haut-bas)
+                // PITCH (Rotation haut/bas)
                 const eyeCenterY = (leftEye[1] + rightEye[1]) / 2;
-                const mouthY = mouth[1];
-                const pitchAngle = ((eyeCenterY - mouthY) / 100) * 60;
+                const pitchAngle = ((mouth[1] - eyeCenterY) / Math.max(faceWidth, 0.1)) * 60;
 
-                return {
-                    yaw: yawAngle,
-                    pitch: pitchAngle
-                };
+                return { yaw: yawAngle, pitch: pitchAngle };
             } catch (err) {
-                console.error('Erreur angles:', err);
                 return null;
             }
         }
@@ -359,148 +271,150 @@
                 return 0;
             }
 
-            if (timeDelta < 30) return 0;
+            // On ignore les deltas de temps trop courts (bruit)
+            if (timeDelta < 33) return 0; // ~30fps min
 
             const deltaYaw = Math.abs(newYaw - lastYaw);
             const deltaPitch = Math.abs(newPitch - lastPitch);
 
-            const adjustDelta = (d) => d > 90 ? 180 - d : d;
-            const adjYaw = adjustDelta(deltaYaw);
-            const adjPitch = adjustDelta(deltaPitch);
+            // Conversion en degrés/seconde
+            const speedYaw = (deltaYaw / (timeDelta / 1000));
+            const speedPitch = (deltaPitch / (timeDelta / 1000));
 
-            const totalAngularSpeed = (adjYaw + adjPitch) / (timeDelta / 1000);
-
+            // On met à jour l'historique
             lastYaw = newYaw;
             lastPitch = newPitch;
             lastYawTime = Date.now();
 
-            return totalAngularSpeed;
+            // Vitesse totale (vectorielle simplifiée)
+            return speedYaw + speedPitch;
         }
 
-        // Estimer distance
         function estimateDistance(start, end) {
             try {
-                const faceWidth = Math.sqrt(
-                    Math.pow(end[0] - start[0], 2) + 
-                    Math.pow(end[1] - start[1], 2)
-                );
-
+                const faceWidth = Math.sqrt(Math.pow(end[0] - start[0], 2) + Math.pow(end[1] - start[1], 2));
                 const estimatedDistance = (150 / Math.max(faceWidth, 0.01)) * 50;
                 return Math.max(20, Math.min(200, estimatedDistance));
-            } catch (err) {
-                return 50;
-            }
+            } catch (err) { return 50; }
         }
 
         function calculateLetterSize() {
-            const pixelPerDegree = 60;
+            // Approximation simple pour l'écran
+            const pixelPerDegree = 60; 
             const size = (acuityLevel / 10) * pixelPerDegree * (currentDistance / refDistance);
             return size;
         }
 
-        // Démarrer caméra
         async function startCamera() {
             try {
                 log('statVideo', '⏳ Activation caméra...');
-
                 const stream = await navigator.mediaDevices.getUserMedia({
                     audio: false,
-                    video: { 
-                        facingMode: 'user', 
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    }
+                    video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
                 });
-
                 video.srcObject = stream;
                 log('statVideo', '✅ Caméra activée', 'success');
 
                 video.onloadedmetadata = async () => {
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
-                    console.log(`Résolution: ${canvas.width}x${canvas.height}`);
-
                     const ok = await initBlazeFace();
                     if (ok) {
                         statusDiv.style.display = 'none';
                         controlPanel.classList.add('show');
                         initialized = true;
                         animate();
-                    } else {
-                        statusDiv.innerHTML = `
-                            <div style="font-size: 40px; margin-bottom: 15px;">❌</div>
-                            <div>Erreur chargement</div>
-                        `;
                     }
                 };
             } catch (err) {
                 log('statVideo', `❌ ${err.message}`, 'error');
-                statusDiv.innerHTML = `
-                    <div style="font-size: 40px; margin-bottom: 15px;">❌</div>
-                    <div>${err.message}</div>
-                `;
+                statusDiv.innerHTML = `<div>Erreur Caméra</div>`;
             }
         }
 
-        // Boucle animation
         async function animate() {
             try {
                 if (video.readyState === video.HAVE_ENOUGH_DATA && detector) {
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    
                     const predictions = await detector.estimateFaces(canvas, false);
 
                     if (predictions && predictions.length > 0) {
                         const face = predictions[0];
-                        const landmarks = face.landmarks;
-                        const start = face.start;
-                        const end = face.end;
+                        const angles = calculateHeadAngles(face.landmarks);
 
-                        if (landmarks) {
-                            const angles = calculateHeadAngles(landmarks);
+                        if (angles) {
+                            currentYaw = angles.yaw;
+                            currentPitch = angles.pitch;
+                            const now = Date.now();
+                            const timeDelta = now - lastYawTime;
+
+                            if (timeDelta > 0) {
+                                currentAngularSpeed = calculateAngularVelocity(
+                                    angles.yaw, angles.pitch, timeDelta
+                                );
+                            }
+
+                            log('statDetection', '✅ Visage détecté', 'success');
+
+                            // --- LOGIQUE DE DÉCLENCHEMENT CORRIGÉE ---
                             
-                            if (angles) {
-                                currentYaw = angles.yaw;
-                                currentPitch = angles.pitch;
+                            const nowMs = Date.now();
+                            const cooldownOver = nowMs - lastLetterDisplayTime > cooldown;
 
-                                const now = Date.now();
-                                const timeDelta = now - lastYawTime;
-
-                                if (timeDelta > 0) {
-                                    currentAngularSpeed = calculateAngularVelocity(
-                                        angles.yaw,
-                                        angles.pitch,
-                                        timeDelta
-                                    );
-
-                                    const isMoving = currentAngularSpeed >= minSpeed && 
-                                                   currentAngularSpeed <= maxSpeed;
-
-                                    const cooldownOver = now - lastLetterDisplayTime > cooldown;
-
-                                    if (isMoving && cooldownOver) {
-                                        currentDistance = estimateDistance(start, end);
+                            // 1. ÉTAT : En Attente (WAITING)
+                            if (motionState === 'WAITING') {
+                                log('statState', '⚪ En attente (Bougez vite!)');
+                                
+                                // Si on dépasse la vitesse ET que le cooldown est passé
+                                if (currentAngularSpeed >= minSpeed && cooldownOver) {
+                                    // VÉRIFICATION : On n'est pas bloqué par le plafond de vitesse (optionnel)
+                                    if (currentAngularSpeed <= maxSpeed + 50) { // Marge de tolérance
+                                        
+                                        // ✅ DÉCLENCHEMENT !
+                                        currentDistance = estimateDistance(face.start, face.end);
                                         currentLetterSize = calculateLetterSize();
                                         currentLetter = letters[Math.floor(Math.random() * letters.length)];
+                                        
+                                        // Affichage immédiat
                                         letterDisplay.textContent = currentLetter;
                                         letterDisplay.style.fontSize = currentLetterSize + 'px';
                                         letterDisplay.style.opacity = '1';
-                                        lastLetterTime = now;
-                                        lastLetterDisplayTime = now;
-                                    }
-
-                                    if (now - lastLetterTime > displayTime && letterDisplay.style.opacity !== '0') {
-                                        letterDisplay.style.opacity = '0';
+                                        
+                                        lastLetterTime = nowMs;
+                                        lastLetterDisplayTime = nowMs;
+                                        
+                                        // Changement d'état
+                                        motionState = 'TRIGGERED';
+                                        log('statState', '🟡 DÉCLENCHEMENT !', 'trigger');
                                     }
                                 }
+                            }
+                            
+                            // 2. ÉTAT : Déclenché (TRIGGERED)
+                            else if (motionState === 'TRIGGERED') {
+                                // On affiche pendant displayTime ms
+                                if (nowMs - lastLetterTime > displayTime) {
+                                    letterDisplay.style.opacity = '0';
+                                }
 
-                                log('statDetection', '✅ Visage détecté', 'success');
+                                // Pour sortir de cet état et revenir en attente, 
+                                // il faut que la vitesse retombe (Stop Threshold)
+                                // Cela évite les doubles déclenchements si la tête continue de bouger
+                                if (currentAngularSpeed < stopThreshold) {
+                                    motionState = 'WAITING';
+                                    // On force le reset pour être sûr
+                                    lastYaw = currentYaw;
+                                    lastPitch = currentPitch;
+                                } else {
+                                    log('statState', `🔴 Mouvement en cours (${Math.round(currentAngularSpeed)}°/s)`);
+                                }
                             }
                         }
                     } else {
                         log('statDetection', '❌ Aucun visage');
                     }
 
+                    // Stats
                     frameCount++;
                     const now = Date.now();
                     if (now - lastFPSTime > 1000) {
@@ -508,7 +422,6 @@
                         frameCount = 0;
                         lastFPSTime = now;
                     }
-
                     updateStats();
                 }
                 requestAnimationFrame(animate);
@@ -521,54 +434,44 @@
         function updateStats() {
             document.getElementById('statYaw').textContent = `Yaw: ${currentYaw.toFixed(1)}°`;
             document.getElementById('statPitch').textContent = `Pitch: ${currentPitch.toFixed(1)}°`;
-            document.getElementById('statAngularSpeed').textContent = `Vitesse: ${Math.round(currentAngularSpeed)}°/s`;
             
+            const speedEl = document.getElementById('statAngularSpeed');
+            speedEl.textContent = `Vitesse: ${Math.round(currentAngularSpeed)}°/s`;
+            
+            // Changement de couleur si on dépasse le seuil
+            if (currentAngularSpeed > minSpeed) speedEl.style.color = '#ff0';
+            else speedEl.style.color = '#00ff00';
+
             const now = Date.now();
             const cooldownRemaining = Math.max(0, cooldown - (now - lastLetterDisplayTime));
             document.getElementById('statCooldown').textContent = `Cooldown: ${Math.round(cooldownRemaining)}ms`;
-            
-            document.getElementById('statDistance').textContent = `Distance: ~${Math.round(currentDistance)}cm`;
-            document.getElementById('statLetter').textContent = `Lettre: ${currentLetter || '--'}`;
-            document.getElementById('statSize').textContent = `Taille: ${Math.round(currentLetterSize)}px`;
-            document.getElementById('statFPS').textContent = `FPS: ${fps}`;
         }
 
-        // Contrôles
+        // Gestionnaires d'événements pour les sliders
+        document.getElementById('stopThreshold').addEventListener('input', (e) => {
+            stopThreshold = parseInt(e.target.value);
+            document.getElementById('stabilityVal').textContent = stopThreshold;
+        });
         document.getElementById('displayTime').addEventListener('input', (e) => {
             displayTime = parseInt(e.target.value);
             document.getElementById('dispVal').textContent = displayTime;
         });
-
         document.getElementById('letterSize').addEventListener('input', (e) => {
             acuityLevel = parseFloat(e.target.value);
             document.getElementById('sizeVal').textContent = acuityLevel.toFixed(1);
         });
-
         document.getElementById('cooldown').addEventListener('input', (e) => {
             cooldown = parseInt(e.target.value);
             document.getElementById('cooldownVal').textContent = cooldown;
         });
-
         document.getElementById('minSpeed').addEventListener('input', (e) => {
             minSpeed = parseInt(e.target.value);
             document.getElementById('minSpeedVal').textContent = minSpeed;
-            if (minSpeed >= maxSpeed) {
-                maxSpeed = minSpeed + 50;
-                document.getElementById('maxSpeed').value = maxSpeed;
-                document.getElementById('maxSpeedVal').textContent = maxSpeed;
-            }
         });
-
         document.getElementById('maxSpeed').addEventListener('input', (e) => {
             maxSpeed = parseInt(e.target.value);
             document.getElementById('maxSpeedVal').textContent = maxSpeed;
-            if (maxSpeed <= minSpeed) {
-                minSpeed = maxSpeed - 50;
-                document.getElementById('minSpeed').value = minSpeed;
-                document.getElementById('minSpeedVal').textContent = minSpeed;
-            }
         });
-
         document.getElementById('refDistance').addEventListener('input', (e) => {
             refDistance = parseInt(e.target.value);
             document.getElementById('distVal').textContent = refDistance;
