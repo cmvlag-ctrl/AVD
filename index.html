@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Test AV - Détection Avancée avec Clavier</title>
+    <title>Test AVD - Right Turn Only</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: sans-serif; color: white; }
         video {
@@ -317,6 +317,9 @@
         // Liste des lettres
         const letters = "D F P V A N L C O E R U S Z H".split(" ");
 
+        // Variables pour la taille des lettres
+        let letterSizePx = 80;
+
         // --- INITIALISATION DU CLAVIER ---
         function initKeyboard() {
             keyboard.innerHTML = '';
@@ -356,7 +359,6 @@
                     letterEl.style.opacity = '0';
 
                     // Réduire la taille de la lettre de 5px à chaque bonne réponse
-                    // jusqu'à atteindre un minimum de 5px
                     letterSizePx = Math.max(5, letterSizePx - 5);
 
                     if (letterSizePx < minSuccessfulLetterSize) {
@@ -476,9 +478,6 @@
                 updateCalib();
             }
         }
-
-        // Variables pour la taille des lettres
-        let letterSizePx = 80;
 
         function adjustLetterSize(change) {
             letterSizePx = Math.max(5, Math.min(300, letterSizePx + change));
@@ -631,7 +630,7 @@
             }
         }
 
-        // --- MACHINE D'ÉTAT ---
+        // --- MACHINE D'ÉTAT (MODIFIÉE UNIQUEMENT ICI) ---
         function handleState(currentSpeed, now) {
             const minSpeedTrigger = 150;
             const flashDuration = 60;
