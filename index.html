@@ -300,14 +300,8 @@
     const startMessage = document.getElementById('startMessage');
     const scoreTopPanel = document.getElementById('scoreTopPanel');
     const finalStatsOverlay = document.getElementById('finalStatsOverlay');
-
-    // Variables pour la nouvelle détection de mouvement
-    let headVelocityX = 0;
-    let headVelocityY = 0;
-    let movementHistory = [];
-    const MOVEMENT_HISTORY_SIZE = 5;
-    const MIN_RIGHT_MOVEMENT_DURATION = 3;
-    let rightMovementFrames = 0;
+    const letterSizeValueEl = document.getElementById('letterSizeValue');
+    const letterSizeInputEl = document.getElementById('letterSizeInput');
 
     // --- INITIALISATION DU CLAVIER ---
     function initKeyboard() {
@@ -381,6 +375,7 @@
 
     // --- METTRE À JOUR L'AFFICHAGE DE LA LETTRE ---
     function updateLetterDisplay() {
+        letterSizeValueEl.innerText = letterSizePx;
         letterEl.style.fontSize = `${letterSizePx}px`;
         letterEl.style.opacity = '0';
     }
@@ -478,64 +473,54 @@
         }
     }
 
-    // --- DÉTECTION AMÉLIORÉE DU MOUVEMENT DE TÊTE ---
-    function detectHeadMovement(currentPos, lastPos, now) {
+    // --- GESTION DE LA TAILLE DES LETTRES ---
+    function updateLetterSizeFromInput() {
+        const newSize = parseInt(letterSizeInputEl.value);
+        if (!isNaN(newSize) && newSize >= 5 && newSize <= 300) {
+            letterSizePx = newSize;
+            updateLetterDisplay();
+            updateStats();
+        }
+        letterSizeInputEl.value = letterSizePx;
+    }
+
+    function adjustLetterSize(delta) {
+        letterSizePx = Math.max(5, Math.min(300, letterSizePx + delta));
+        letterSizeInputEl.value = letterSizePx;
+        updateLetterDisplay();
+        updateStats();
+    }
+
+    // --- DÉTECTION DE LA DIRECTION DU MOUVEMENT (MODIFIÉE) ---
+    function detectDirection(currentPos, lastPos) {
         if (!lastPos) return;
 
         const dx = currentPos.x - lastPos.x;
         const dy = currentPos.y - lastPos.y;
-        const dt = now - lastTime;
 
-        // Calcul des vitesses en pixels par seconde
-        headVelocityX = (dx / dt) * 1000;  // Conversion en px/s
-        headVelocityY = (dy / dt) * 1000;
+        // Seuil pour considérer un mouvement significatif
+        const threshold = 10;
 
-        // Mise à jour de l'historique
-        movementHistory.push({
-            x: headVelocityX,
-            y: headVelocityY,
-            time: now
-        });
-
-        // Limiter la taille de l'historique
-        if (movementHistory.length > MOVEMENT_HISTORY_SIZE) {
-            movementHistory.shift();
-        }
-
-        // Détection du mouvement vers la droite
-        const isMovingRight = headVelocityX > 50;  // Seuil de 50 px/s pour le mouvement vers la droite
-        const hasRightMovementHistory = movementHistory.some(m => m.x > 30);
-
-        // Validation du mouvement vers la droite (doit être cohérent sur plusieurs frames)
-        if (isMovingRight && hasRightMovementHistory) {
-            rightMovementFrames++;
-            lastMovementDirection = 'right';
-
-            // Si le mouvement est suffisamment long, on le considère comme valide
-            if (rightMovementFrames >= MIN_RIGHT_MOVEMENT_DURATION) {
-                updateMovementStats('right', false);
-                rightMovementFrames = 0;  // Réinitialiser pour le prochain mouvement
+        if (Math.abs(dx) > threshold || Math.abs(dy) > threshold) {
+            if (Math.abs(dx) > Math.abs(dy)) {
+                // Mouvement horizontal dominant
+                if (dx > 0) {
+                    updateMovementStats('right', false);
+                } else {
+                    updateMovementStats('left', false);
+                }
+            } else {
+                // Mouvement vertical dominant
+                if (dy > 0) {
+                    updateMovementStats('down', false);
+                } else {
+                    updateMovementStats('up', false);
+                }
             }
-        } else {
-            rightMovementFrames = 0;  // Réinitialiser si le mouvement n'est pas cohérent
-        }
-
-        // Détection des autres directions (pour les statistiques)
-        if (headVelocityX < -50) {
-            lastMovementDirection = 'left';
-            updateMovementStats('left', false);
-        }
-        if (headVelocityY < -50) {
-            lastMovementDirection = 'up';
-            updateMovementStats('up', false);
-        }
-        if (headVelocityY > 50) {
-            lastMovementDirection = 'down';
-            updateMovementStats('down', false);
         }
     }
 
-    // --- METTRE À JOUR LES STATISTIQUES DE MOUVEMENT ---
+    // --- METTRE À JOUR LES STATISTIQUES DE MOUVEMENT (MODIFIÉE) ---
     function updateMovementStats(direction, isValidation) {
         if (isValidation) {
             // Si c'est une validation de lettre, on compte comme correct
@@ -546,6 +531,10 @@
             // Si c'est juste un mouvement détecté
             if (movements[direction]) {
                 movements[direction].count++;
+                // SEULE MODIFICATION : Ne mettre à jour lastMovementDirection QUE pour la droite
+                if (direction === 'right') {
+                    lastMovementDirection = 'right';
+                }
             }
         }
     }
@@ -557,7 +546,7 @@
         const cooldownDuration = 1000;
 
         if (state === 'IDLE') {
-            if (currentSpeed > minSpeedTrigger && (now - lastFlashTime > cooldownDuration) && lastMovementDirection === 'right') {
+            if (currentSpeed > minSpeedTrigger && lastMovementDirection === 'right' && (now - lastFlashTime > cooldownDuration)) {
                 state = 'WAITING_VALIDATION';
                 lastFlashTime = now;
                 currentDisplayedLetter = letters[Math.floor(Math.random() * letters.length)];
@@ -621,8 +610,8 @@
             lastHeadPos = { x: nose[0], y: nose[1] };
             lastTime = now;
 
-            // 3. DÉTECTION DE LA DIRECTION (nouvelle version)
-            detectHeadMovement(nose, lastHeadPos, now);
+            // 3. DÉTECTION DE LA DIRECTION (inchangée)
+            detectDirection(nose, lastHeadPos);
 
             // 4. GESTION DE L'ÉTAT
             handleState(speed, now);
